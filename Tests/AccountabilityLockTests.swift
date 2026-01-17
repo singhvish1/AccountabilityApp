@@ -115,6 +115,22 @@ class AccountabilityLockTests: XCTestCase {
         XCTAssertFalse("".isValidPassword)
     }
     
+    // MARK: - PIN Validation Tests
+    
+    func testValidPINs() {
+        XCTAssertTrue("123456".isValidPIN)
+        XCTAssertTrue("000000".isValidPIN)
+        XCTAssertTrue("999999".isValidPIN)
+    }
+    
+    func testInvalidPINs() {
+        XCTAssertFalse("12345".isValidPIN)    // Too short
+        XCTAssertFalse("1234567".isValidPIN)  // Too long
+        XCTAssertFalse("12345a".isValidPIN)   // Contains letter
+        XCTAssertFalse("abcdef".isValidPIN)   // All letters
+        XCTAssertFalse("".isValidPIN)         // Empty
+    }
+    
     // MARK: - Accountability Partner Tests
     
     func testCreatePartnershipInvite() async throws {

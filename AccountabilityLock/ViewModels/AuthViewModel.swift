@@ -45,7 +45,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func signUp(email: String, password: String, displayName: String) async {
+    func signUp(email: String, password: String, displayName: String, authType: User.AuthType = .password) async {
         isLoading = true
         errorMessage = nil
         
@@ -57,7 +57,8 @@ class AuthViewModel: ObservableObject {
                 id: result.user.uid,
                 email: email,
                 displayName: displayName,
-                role: .user
+                role: .user,
+                authType: authType
             )
             
             try await FirebaseService.shared.createUser(user: newUser)

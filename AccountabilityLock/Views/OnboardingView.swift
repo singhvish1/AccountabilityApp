@@ -212,6 +212,9 @@ struct SignUpView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var pin = ""
+    @State private var confirmPin = ""
+    @State private var authType: User.AuthType = .password
     @State private var isLoading = false
     
     var body: some View {
@@ -242,17 +245,54 @@ struct SignUpView: View {
                             .background(Color(.secondarySystemBackground))
                             .cornerRadius(10)
                         
-                        SecureField("Password", text: $password)
-                            .textContentType(.newPassword)
-                            .padding()
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(10)
+                        // Auth Type Picker
+                        Picker("Authentication Type", selection: $authType) {
+                            Text("Password").tag(User.AuthType.password)
+                            Text("6-Digit PIN").tag(User.AuthType.pin)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.vertical, 10)
                         
-                        SecureField("Confirm Password", text: $confirmPassword)
-                            .textContentType(.newPassword)
-                            .padding()
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(10)
+                        // Password or PIN fields based on selection
+                        if authType == .password {
+                            SecureField("Password", text: $password)
+                                .textContentType(.newPassword)
+                                .padding()
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(10)
+                            
+                            SecureField("Confirm Password", text: $confirmPassword)
+                                .textContentType(.newPassword)
+                                .padding()
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(10)
+                        } else {
+                            SecureField("6-Digit PIN", text: $pin)
+                                .keyboardType(.numberPad)
+                                .textContentType(.newPassword)
+                                .padding()
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(10)
+                                .onChange(of: pin) { newValue in
+                                    // Limit to 6 digits
+                                    if newValue.count > 6 {
+                                        pin = String(newValue.prefix(6))
+                                    }
+                                }
+                            
+                            SecureField("Confirm PIN", text: $confirmPin)
+                                .keyboardType(.numberPad)
+                                .textContentType(.newPassword)
+                                .padding()
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(10)
+                                .onChange(of: confirmPin) { newValue in
+                                    // Limit to 6 digits
+                                    if newValue.count > 6 {
+                                        confirmPin = String(newValue.prefix(6))
+                                    }
+                                }
+                        }
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 20)
@@ -264,18 +304,35 @@ struct SignUpView: View {
                             .padding(.horizontal, 30)
                     }
                     
-                    if !password.isEmpty && !password.isValidPassword {
-                        Text("Password must be at least 8 characters")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                            .padding(.horizontal, 30)
-                    }
-                    
-                    if !confirmPassword.isEmpty && password != confirmPassword {
-                        Text("Passwords do not match")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .padding(.horizontal, 30)
+                    // Validation messages
+                    if authType == .password {
+                        if !password.isEmpty && !password.isValidPassword {
+                            Text("Password must be at least 8 characters")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 30)
+                        }
+                        
+                        if !confirmPassword.isEmpty && password != confirmPassword {
+                            Text("Passwords do not match")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 30)
+                        }
+                    } else {
+                        if !pin.isEmpty && !pin.isValidPIN {
+                            Text("PIN must be exactly 6 digits")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 30)
+                        }
+                        
+                        if !confirmPin.isEmpty && pin != confirmPin {
+                            Text("PINs do not match")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 30)
+                        }
                     }
                     
                     Button(action: signUp) {
@@ -321,18 +378,21 @@ struct SignUpView: View {
     }
     
     var isFormValid: Bool {
-        !name.isEmpty && 
-        !email.isEmpty && 
-        email.isValidEmail && 
-        !password.isEmpty && 
-        password.isValidPassword && 
-        password == confirmPassword
+        let basicValid = !name.isEmpty && !email.isEmpty && email.isValidEmail
+        
+        if authType == .password {
+            return basicValid && !password.isEmpty && password.isValidPassword && password == confirmPassword
+        } else {
+            return basicValid && !pin.isEmpty && pin.isValidPIN && pin == confirmPin
+        }
     }
     
     func signUp() {
         isLoading = true
         Task {
-            await authViewModel.signUp(email: email, password: password, displayName: name)
+            // Use PIN as password if PIN auth is selected
+            let authPassword = authType == .pin ? pin : password
+            await authViewModel.signUp(email: email, password: authPassword, displayName: name, authType: authType)
             isLoading = false
         }
     }

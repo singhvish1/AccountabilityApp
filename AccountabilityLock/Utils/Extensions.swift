@@ -67,6 +67,11 @@ extension String {
         // At least 8 characters
         return count >= 8
     }
+    
+    var isValidPIN: Bool {
+        // Exactly 6 digits
+        return count == 6 && allSatisfy { $0.isNumber }
+    }
 }
 
 // MARK: - View Extensions
